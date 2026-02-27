@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0e0e;
+    --surface: #161616;
+    --surface2: #1e1e1e;
+    --border: #2a2a2a;
+    --text: #f0ede8;
+    --muted: #666;
+    --accent: #e8ff47;
+    --accent-dim: rgba(232,255,71,0.12);
+    --accent-dark: #b8cc1a;
+    --danger: #ff4747;
+    --radius: 6px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    font-size: 13px;
+  }
+
+  .loading-bar {
+    position: fixed;
+    top: 0; left: 0;
+    height: 2px;
+    background: var(--accent);
+    z-index: 999;
+    transition: width 0.3s;
+    width: 0;
+  }
+
+  #authScreen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .auth-box { width: 100%; max-width: 380px; }
+
+  .auth-logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 28px;
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 40px;
+  }
+
+  .logo-mark {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .logo-mark svg { width: 18px; height: 18px; }
+
+  .auth-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 28px;
+  }
+
+  .auth-tab {
+    padding: 10px 0;
+    margin-right: 24px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.15s;
+  }
+
+  .auth-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .auth-form { display: flex; flex-direction: column; gap: 16px; }
+
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+
+  label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  input[type="text"], input[type="url"], input[type="email"],
+  input[type="password"], textarea, select {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 16px;
+    border-radius: var(--radius);
+    border: none;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    transition: all 0.15s;
+  }
+
+  .btn-primary { background: var(--accent); color: #0e0e0e; }
+  .btn-primary:hover:not(:disabled) { background: var(--accent-dark); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+
+  .btn-ghost:hover { color: var(--text); border-color: #444; }
+
+  .auth-error {
+    background: rgba(255,71,71,0.1);
+    border: 1px solid rgba(255,71,71,0.3);
+    color: var(--danger);
+    padding: 10px 14px;
+    border-radius: var(--radius);
+    font-size: 12px;
+    display: none;
+  }
+
+  .auth-success {
+    background: var(--accent-dim);
+    border: 1px solid rgba(232,255,71,0.2);
+    color: var(--accent);
+    padding: 10px 14px;
+    border-radius: var(--radius);
+    font-size: 12px;
+    display: none;
+  }
+
+  #appScreen { display: none; }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 18px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 100;
+  }
+
+  .header-logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 20px;
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .header-logo .logo-mark { width: 26px; height: 26px; }
+  .header-logo .logo-mark svg { width: 14px; height: 14px; }
+
+  .header-right { display: flex; align-items: center; gap: 12px; }
+
+  .user-email { color: var(--muted); font-size: 11px; }
+  .count-badge { color: var(--muted); font-size: 11px; }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 40px; }
+
+  .toolbar { display: flex; gap: 12px; margin-bottom: 32px; align-items: center; }
+
+  .search-wrap { flex: 1; position: relative; }
+
+  .search-wrap svg {
+    position: absolute;
+    left: 12px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    width: 14px; height: 14px;
+    pointer-events: none;
+  }
+
+  .search-input { padding-left: 36px; }
+
+  .tag-filter { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+
+  .tag-chip {
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    transition: all 0.15s;
+  }
+
+  .tag-chip:hover { border-color: var(--accent); color: var(--accent); }
+  .tag-chip.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    transition: border-color 0.15s, transform 0.15s;
+    animation: fadeIn 0.3s ease both;
+  }
+
+  .card:hover { border-color: #3a3a3a; transform: translateY(-1px); }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .card-header { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+
+  .favicon {
+    width: 20px; height: 20px;
+    border-radius: 3px;
+    object-fit: contain;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .favicon-fallback {
+    width: 20px; height: 20px;
+    border-radius: 3px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: var(--muted);
+    font-size: 9px;
+  }
+
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    line-height: 1.3;
+    flex: 1;
+  }
+
+  .card-url {
+    color: var(--muted);
+    font-size: 11px;
+    margin-bottom: 10px;
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-decoration: none;
+  }
+
+  .card-url:hover { color: var(--accent); }
+
+  .card-desc {
+    color: #999;
+    font-size: 12px;
+    line-height: 1.6;
+    margin-bottom: 14px;
+  }
+
+  .card-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+
+  .card-tag {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    letter-spacing: 0.3px;
+  }
+
+  .card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  .card-date { color: var(--muted); font-size: 10px; }
+  .card-actions { display: flex; gap: 8px; }
+
+  .icon-btn {
+    width: 28px; height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    background: transparent;
+    cursor: pointer;
+    color: var(--muted);
+    transition: all 0.15s;
+  }
+
+  .icon-btn:hover { border-color: var(--border); color: var(--text); }
+  .icon-btn.danger:hover { border-color: var(--danger); color: var(--danger); }
+  .icon-btn svg { width: 13px; height: 13px; }
+
+  .empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--muted);
+  }
+
+  .empty-state .big { font-size: 40px; margin-bottom: 16px; }
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 28px;
+    width: 100%;
+    max-width: 480px;
+    transform: translateY(12px);
+    transition: transform 0.2s;
+  }
+
+  .modal-overlay.open .modal { transform: translateY(0); }
+
+  .modal-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+
+  textarea { resize: vertical; min-height: 72px; }
+
+  .toast {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 12px 20px;
+    border-radius: var(--radius);
+    font-size: 12px;
+    z-index: 999;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.2s;
+    pointer-events: none;
+  }
+
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.success { border-color: var(--accent); color: var(--accent); }
+  .toast.error { border-color: var(--danger); color: var(--danger); }
+
+  .spinner {
+    width: 14px; height: 14px;
+    border: 2px solid rgba(0,0,0,0.2);
+    border-top-color: #0e0e0e;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    display: inline-block;
+  }
+
+  .spinner-light { border-color: var(--border); border-top-color: var(--accent); }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="loading-bar" id="loadingBar"></div>
+
+<div id="authScreen">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 16 16" fill="none" stroke="#0e0e0e" stroke-width="2" stroke-linecap="round">
+          <path d="M3 2h10v12l-5-3-5 3V2z"/>
+        </svg>
+      </div>
+      Marker
+    </div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tabLogin" onclick="switchTab('login')">Sign in</button>
+      <button class="auth-tab" id="tabSignup" onclick="switchTab('signup')">Create account</button>
+    </div>
+    <div class="auth-form">
+      <div class="auth-error" id="authError"></div>
+      <div class="auth-success" id="authSuccess"></div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="authEmail" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="authPassword" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <button class="btn btn-primary" id="authBtn" onclick="handleAuth()" style="width:100%;margin-top:4px">Sign in</button>
+    </div>
+  </div>
+</div>
+
+<div id="appScreen">
+  <header>
+    <div class="header-logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 16 16" fill="none" stroke="#0e0e0e" stroke-width="2" stroke-linecap="round">
+          <path d="M3 2h10v12l-5-3-5 3V2z"/>
+        </svg>
+      </div>
+      Marker
+    </div>
+    <div class="header-right">
+      <span class="count-badge" id="countBadge"></span>
+      <span class="user-email" id="userEmail"></span>
+      <button class="btn btn-ghost" onclick="signOut()" style="padding:7px 12px">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Sign out
+      </button>
+      <button class="btn btn-primary" onclick="openModal()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add bookmark
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <div class="toolbar">
+      <div class="search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input type="text" class="search-input" id="searchInput" placeholder="Search bookmarks..." oninput="filterBookmarks()">
+      </div>
+      <select id="sortSelect" onchange="filterBookmarks()" style="width:auto;min-width:130px">
+        <option value="newest">Newest first</option>
+        <option value="oldest">Oldest first</option>
+        <option value="title">Title A–Z</option>
+      </select>
+    </div>
+    <div class="tag-filter" id="tagFilter"></div>
+    <div class="grid" id="grid">
+      <div class="empty-state"><div class="big">⎍</div><p>Loading…</p></div>
+    </div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="modalTitle">New bookmark</span>
+      <button class="icon-btn" onclick="closeModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="form-group" style="margin-bottom:16px">
+      <label>URL *</label>
+      <input type="url" id="formUrl" placeholder="https://example.com">
+    </div>
+    <div class="form-group" style="margin-bottom:16px">
+      <label>Title *</label>
+      <input type="text" id="formTitle" placeholder="Page title">
+    </div>
+    <div class="form-group" style="margin-bottom:16px">
+      <label>Description</label>
+      <textarea id="formDesc" placeholder="What's this about?"></textarea>
+    </div>
+    <div class="form-group" style="margin-bottom:16px">
+      <label>Tags</label>
+      <input type="text" id="formTags" placeholder="design, tools, reference (comma separated)">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" id="saveBtn" onclick="saveBookmark()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://lzrdnadxiaravixnxdcp.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6cmRuYWR4aWFyYXZpeG54ZGNwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMjg3NjUsImV4cCI6MjA4NzcwNDc2NX0.sPHO2_U0bZ65P8bHdrnYl9tjSkV0Oc5IFsEXWW1xjN4';
+
+let bookmarks = [];
+let editingId = null;
+let activeTag = null;
+let session = null;
+let currentTab = 'login';
+
+function apiHeaders() {
+  return {
+    'Content-Type': 'application/json',
+    'apikey': SUPABASE_KEY,
+    'Authorization': `Bearer ${session ? session.access_token : SUPABASE_KEY}`,
+    'Prefer': 'return=representation'
+  };
+}
+
+function setLoading(on) {
+  const bar = document.getElementById('loadingBar');
+  bar.style.width = on ? '70%' : '100%';
+  if (!on) setTimeout(() => bar.style.width = '0', 300);
+}
+
+function toast(msg, type = 'success') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast ${type} show`;
+  setTimeout(() => el.className = 'toast', 2800);
+}
+
+function showApp() {
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'block';
+  document.getElementById('userEmail').textContent = session.user.email;
+  loadBookmarks();
+}
+
+function showAuth() {
+  document.getElementById('authScreen').style.display = 'flex';
+  document.getElementById('appScreen').style.display = 'none';
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
+  document.getElementById('tabSignup').classList.toggle('active', tab === 'signup');
+  document.getElementById('authBtn').textContent = tab === 'login' ? 'Sign in' : 'Create account';
+  document.getElementById('authError').style.display = 'none';
+  document.getElementById('authSuccess').style.display = 'none';
+}
+
+async function handleAuth() {
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const errEl = document.getElementById('authError');
+  const successEl = document.getElementById('authSuccess');
+  const btn = document.getElementById('authBtn');
+
+  errEl.style.display = 'none';
+  successEl.style.display = 'none';
+
+  if (!email || !password) {
+    errEl.textContent = 'Email and password are required.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  btn.innerHTML = '<span class="spinner spinner-light"></span>';
+  btn.disabled = true;
+
+  const endpoint = currentTab === 'login'
+    ? `${SUPABASE_URL}/auth/v1/token?grant_type=password`
+    : `${SUPABASE_URL}/auth/v1/signup`;
+
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error_description || data.msg || 'Authentication failed');
+
+    if (currentTab === 'signup') {
+      if (data.access_token) {
+        session = data;
+        showApp();
+      } else {
+        successEl.textContent = 'Check your email to confirm your account, then sign in.';
+        successEl.style.display = 'block';
+      }
+    } else {
+      session = data;
+      showApp();
+    }
+  } catch(e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+  }
+
+  btn.textContent = currentTab === 'login' ? 'Sign in' : 'Create account';
+  btn.disabled = false;
+}
+
+async function signOut() {
+  await fetch(`${SUPABASE_URL}/auth/v1/logout`, {
+    method: 'POST',
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${session.access_token}` }
+  });
+  session = null;
+  bookmarks = [];
+  showAuth();
+}
+
+async function loadBookmarks() {
+  setLoading(true);
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/bookmarks?select=*&order=created_at.desc`, { headers: apiHeaders() });
+    if (!res.ok) throw new Error(await res.text());
+    bookmarks = await res.json();
+    renderAllTags();
+    filterBookmarks();
+  } catch(e) {
+    toast('Failed to load: ' + e.message, 'error');
+    renderGrid([]);
+  }
+  setLoading(false);
+}
+
+function getAllTags() {
+  const set = new Set();
+  bookmarks.forEach(b => (b.tags || []).forEach(t => set.add(t)));
+  return [...set].sort();
+}
+
+function renderAllTags() {
+  const tags = getAllTags();
+  const container = document.getElementById('tagFilter');
+  container.innerHTML = '';
+  if (!tags.length) return;
+
+  const all = document.createElement('button');
+  all.className = 'tag-chip' + (activeTag === null ? ' active' : '');
+  all.textContent = 'All';
+  all.onclick = () => { activeTag = null; renderAllTags(); filterBookmarks(); };
+  container.appendChild(all);
+
+  tags.forEach(t => {
+    const btn = document.createElement('button');
+    btn.className = 'tag-chip' + (activeTag === t ? ' active' : '');
+    btn.textContent = t;
+    btn.onclick = () => { activeTag = t; renderAllTags(); filterBookmarks(); };
+    container.appendChild(btn);
+  });
+}
+
+function filterBookmarks() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const sort = document.getElementById('sortSelect').value;
+
+  let filtered = bookmarks.filter(b => {
+    const matchSearch = !q || b.title.toLowerCase().includes(q) || b.url.toLowerCase().includes(q) || (b.description || '').toLowerCase().includes(q);
+    const matchTag = !activeTag || (b.tags || []).includes(activeTag);
+    return matchSearch && matchTag;
+  });
+
+  if (sort === 'oldest') filtered.sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+  else if (sort === 'title') filtered.sort((a,b) => a.title.localeCompare(b.title));
+
+  renderGrid(filtered);
+}
+
+function renderGrid(items) {
+  const grid = document.getElementById('grid');
+  const badge = document.getElementById('countBadge');
+  badge.textContent = bookmarks.length ? `${bookmarks.length} bookmark${bookmarks.length !== 1 ? 's' : ''}` : '';
+
+  if (!items.length) {
+    grid.innerHTML = `<div class="empty-state"><div class="big">⎍</div><p>${bookmarks.length ? 'No bookmarks match your search.' : 'No bookmarks yet.<br>Add your first one above.'}</p></div>`;
+    return;
+  }
+
+  grid.innerHTML = items.map((b, i) => `
+    <div class="card" style="animation-delay:${Math.min(i * 40, 400)}ms">
+      <div class="card-header">
+        ${b.favicon ? `<img class="favicon" src="${b.favicon}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : ''}
+        <div class="favicon-fallback" ${b.favicon ? 'style="display:none"' : ''}>◈</div>
+        <div class="card-title">${escHtml(b.title)}</div>
+      </div>
+      <a class="card-url" href="${escHtml(b.url)}" target="_blank" rel="noopener">${escHtml(cleanUrl(b.url))}</a>
+      ${b.description ? `<div class="card-desc">${escHtml(b.description)}</div>` : ''}
+      ${(b.tags && b.tags.length) ? `<div class="card-tags">${b.tags.map(t => `<span class="card-tag">${escHtml(t)}</span>`).join('')}</div>` : ''}
+      <div class="card-footer">
+        <span class="card-date">${formatDate(b.created_at)}</span>
+        <div class="card-actions">
+          <button class="icon-btn" title="Open" onclick="window.open('${escHtml(b.url)}','_blank')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          </button>
+          <button class="icon-btn" title="Edit" onclick="editBookmark('${b.id}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="icon-btn danger" title="Delete" onclick="deleteBookmark('${b.id}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function cleanUrl(url) {
+  try { return new URL(url).hostname.replace('www.', '') + new URL(url).pathname.replace(/\/$/, ''); }
+  catch { return url; }
+}
+
+function formatDate(iso) {
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function getFaviconUrl(url) {
+  try { return `https://www.google.com/s2/favicons?sz=32&domain=${new URL(url).hostname}`; }
+  catch { return null; }
+}
+
+function openModal(data = null) {
+  editingId = data ? data.id : null;
+  document.getElementById('modalTitle').textContent = data ? 'Edit bookmark' : 'New bookmark';
+  document.getElementById('formUrl').value = data ? data.url : '';
+  document.getElementById('formTitle').value = data ? data.title : '';
+  document.getElementById('formDesc').value = data ? (data.description || '') : '';
+  document.getElementById('formTags').value = data ? (data.tags || []).join(', ') : '';
+  document.getElementById('modalOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('formUrl').focus(), 100);
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  editingId = null;
+}
+
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+}
+
+function editBookmark(id) {
+  const b = bookmarks.find(b => b.id === id);
+  if (b) openModal(b);
+}
+
+async function saveBookmark() {
+  const url = document.getElementById('formUrl').value.trim();
+  const title = document.getElementById('formTitle').value.trim();
+  const description = document.getElementById('formDesc').value.trim();
+  const tags = document.getElementById('formTags').value.trim().split(',').map(t => t.trim()).filter(Boolean);
+
+  if (!url || !title) { toast('URL and title are required', 'error'); return; }
+
+  const btn = document.getElementById('saveBtn');
+  btn.innerHTML = '<span class="spinner"></span>';
+  btn.disabled = true;
+
+  const payload = { url, title, description: description || null, tags, favicon: getFaviconUrl(url), user_id: session.user.id };
+
+  try {
+    let res;
+    if (editingId) {
+      res = await fetch(`${SUPABASE_URL}/rest/v1/bookmarks?id=eq.${editingId}`, {
+        method: 'PATCH', headers: apiHeaders(), body: JSON.stringify(payload)
+      });
+    } else {
+      res = await fetch(`${SUPABASE_URL}/rest/v1/bookmarks`, {
+        method: 'POST', headers: apiHeaders(), body: JSON.stringify(payload)
+      });
+    }
+    if (!res.ok) throw new Error(await res.text());
+    toast(editingId ? 'Bookmark updated' : 'Bookmark saved');
+    closeModal();
+    await loadBookmarks();
+  } catch(e) {
+    toast('Error: ' + e.message, 'error');
+  }
+
+  btn.innerHTML = 'Save';
+  btn.disabled = false;
+}
+
+async function deleteBookmark(id) {
+  if (!confirm('Delete this bookmark?')) return;
+  setLoading(true);
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/bookmarks?id=eq.${id}`, {
+      method: 'DELETE', headers: apiHeaders()
+    });
+    if (!res.ok) throw new Error(await res.text());
+    toast('Deleted');
+    await loadBookmarks();
+  } catch(e) {
+    toast('Error: ' + e.message, 'error');
+  }
+  setLoading(false);
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+  if ((e.metaKey || e.ctrlKey) && e.key === 'k' && session) { e.preventDefault(); openModal(); }
+  if (e.key === 'Enter' && !session) handleAuth();
+});
+</script>
+</body>
+</html>
